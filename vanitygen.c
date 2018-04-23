@@ -255,20 +255,7 @@ int count_processors(void)
 int
 count_processors(void)
 {
-	FILE *fp;
-	char buf[512];
-	int count = 0;
-
-	fp = fopen("/proc/cpuinfo", "r");
-	if (!fp)
-		return -1;
-
-	while (fgets(buf, sizeof(buf), fp)) {
-		if (!strncmp(buf, "processor\t", 10))
-			count += 1;
-	}
-	fclose(fp);
-	return count;
+    return sysconf( _SC_NPROCESSORS_ONLN );
 }
 #endif
 
@@ -540,6 +527,17 @@ main(int argc, char **argv)
 		addrtype = scriptaddrtype;
 	}
 
+	if (!seedfile)
+	{
+#if !defined(_WIN32)
+	 struct stat st;
+	 if (stat("/dev/random", &st) == 0)
+	 {
+	     seedfile = "/dev/random";
+	 }
+#endif
+	}
+
 	if (seedfile) {
 		opt = -1;
 #if !defined(_WIN32)
@@ -551,10 +549,10 @@ main(int argc, char **argv)
 #endif
 		opt = RAND_load_file(seedfile, opt);
 		if (!opt) {
-			fprintf(stderr, "Could not load RNG seed %s\n", optarg);
+			fprintf(stderr, "Could not load RNG seed '%s'\n", seedfile);
 			return 1;
 		}
-		if (verbose > 0) {
+		if (verbose > 1) {
 			fprintf(stderr,
 				"Read %d bytes from RNG seed file\n", opt);
 		}
