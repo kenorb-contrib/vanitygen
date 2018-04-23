@@ -20,7 +20,7 @@
 #include <string.h>
 #include <math.h>
 #include <assert.h>
-
+#include <sys/sysctl.h>
 #include <pthread.h>
 
 #include <openssl/sha.h>
@@ -240,29 +240,18 @@ out:
 }
 
 
-#if defined(__APPLE__)
-int
-count_processors(void)
+#ifdef __APPLE__
+int count_processors(void)
 {
-       FILE *fp;
-       char buf[512];
-       int count = 0;
-
-        fp = popen("/usr/sbin/sysctl -n hw.ncpu", "r");
-        while (fgets(buf, sizeof(buf), fp) != NULL) {
-          count = atoi (buf);
-        }
-        pclose(fp);
-
-        if (!fp) {
-          return -1;
-        } else {
-          return count;
-        }
+	int mib[2], count;
+        size_t len;
+        mib[0] = CTL_HW;
+        mib[1] = HW_NCPU;
+        len = sizeof(count);
+        sysctl(mib, 2, &count, &len, NULL, 0);
+	return count;
 }
-#endif
-
-#if defined(__linux__)
+#elif !defined(_WIN32)
 int
 count_processors(void)
 {
